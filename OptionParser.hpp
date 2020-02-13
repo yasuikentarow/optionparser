@@ -39,19 +39,14 @@ class OptionParser {
   };
 
  private:
-  int argc_;
-  const char** argv_;
+  int argc_ = 0;
+  const char** argv_ = nullptr;
   std::vector<const Table> tables_;
-  int cursor_;
-  const char* optionArgument_;
+  int cursor_ = 0;
+  const char* optionArgument_ = nullptr;
 
  public:
-  OptionParser(int argc, const char** argv)
-    : argc_(argc), 
-      argv_(argv), 
-      cursor_(1), 
-      optionArgument_(nullptr)
-  {}
+  OptionParser() = default;
   virtual ~OptionParser() = default;
 
   /**
@@ -74,10 +69,18 @@ class OptionParser {
   /**
      オプションを解析する
   */
-  void parse() {
+  void parse(int argc, const char** argv) {
+    argc_ = argc;
+    argv_ = argv;
+    cursor_ = 1;
+    optionArgument_ = nullptr;
     while(auto argument = getArgument()) {
       if(argument[0] == '-') {
-        if(!parseOption(argument)) {
+        if(argument[1] == '\0') {
+          next();
+          break;
+        }
+        else if(!parseOption(argument)) {
           std::ostringstream stream;
           stream << "no such option, " << argument;
           error(stream.str());
@@ -90,35 +93,37 @@ class OptionParser {
   }
 
   /**
-     引数を取得する
-     @return 引数(もしくはnullptr)
    */
-  const char* shift() {
-    if(auto argument = getArgument()) {
-      next();
-      return argument;
-    }
-    return nullptr;
+  const char** begin() const {
+    return &argv_[cursor_];
   }
 
   /**
-     ヘルプメッセージを出力する
-     @param[in] output 出力先
    */
-  void showHelp(std::ostream& output) const {
+  const char** end() const {
+    return &argv_[argc_];
+  }
+
+  /**
+     ヘルプメッセージを取得する
+     @return ヘルプメッセージ
+   */
+  std::string help() const {
+    std::ostringstream stream;
     for(auto& table : tables_) {
-      output << "  -" << table.option;
+      stream << "  -" << table.option;
       if(table.longOption) {
-        output << ", --" << table.longOption;
+        stream << ", --" << table.longOption;
       }
       if(table.argument) {
-        output << (table.longOption ? '=' : ' ') << table.argument;
+        stream << (table.longOption ? '=' : ' ') << table.argument;
       }
       if(table.description) {
-        output << std::endl << "    " << table.description;
+        stream << std::endl << "    " << table.description;
       }
-      output << std::endl;
+      stream << std::endl;
     }
+    return stream.str();
   }
 
   /**
