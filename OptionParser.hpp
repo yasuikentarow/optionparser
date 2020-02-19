@@ -41,7 +41,7 @@ class OptionParser {
  private:
   int argc_ = 0;
   const char** argv_ = nullptr;
-  std::vector<const Table> tables_;
+  std::vector<Table> tables_;
   int cursor_ = 0;
   const char* optionArgument_ = nullptr;
 
